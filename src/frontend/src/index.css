@@ -1,0 +1,99 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  src: url("/assets/fonts/PlusJakartaSans.woff2") format("woff2");
+  font-weight: 300 700;
+  font-display: swap;
+}
+
+@layer base {
+  :root {
+    --radius: 0.875rem;
+
+    /* Dark futuristic palette */
+    --background: 0.118 0.022 204;
+    --foreground: 0.97 0.005 200;
+    --card: 0.148 0.024 202;
+    --card-foreground: 0.97 0.005 200;
+    --popover: 0.148 0.024 202;
+    --popover-foreground: 0.97 0.005 200;
+    --primary: 0.77 0.12 185;
+    --primary-foreground: 0.118 0.022 204;
+    --secondary: 0.185 0.026 200;
+    --secondary-foreground: 0.97 0.005 200;
+    --muted: 0.185 0.026 200;
+    --muted-foreground: 0.68 0.018 200;
+    --accent: 0.77 0.12 185;
+    --accent-foreground: 0.118 0.022 204;
+    --destructive: 0.577 0.245 27.325;
+    --destructive-foreground: 0.985 0 0;
+    --border: 0.22 0.028 200;
+    --input: 0.185 0.026 200;
+    --ring: 0.77 0.12 185;
+
+    /* CTA coral/orange */
+    --cta: 0.7 0.17 37;
+    --cta-end: 0.72 0.19 30;
+
+    /* Teal accent */
+    --teal: 0.77 0.12 185;
+    --teal-dim: 0.6 0.09 185;
+
+    --chart-1: 0.77 0.12 185;
+    --chart-2: 0.7 0.17 37;
+    --chart-3: 0.65 0.15 145;
+    --chart-4: 0.72 0.18 270;
+    --chart-5: 0.74 0.16 60;
+    --sidebar: 0.148 0.024 202;
+    --sidebar-foreground: 0.97 0.005 200;
+    --sidebar-primary: 0.77 0.12 185;
+    --sidebar-primary-foreground: 0.118 0.022 204;
+    --sidebar-accent: 0.185 0.026 200;
+    --sidebar-accent-foreground: 0.97 0.005 200;
+    --sidebar-border: 0.22 0.028 200;
+    --sidebar-ring: 0.77 0.12 185;
+  }
+
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+  }
+}
+
+/* Custom utilities */
+@layer utilities {
+  .text-teal {
+    color: oklch(var(--teal));
+  }
+  .bg-teal {
+    background-color: oklch(var(--teal));
+  }
+  .border-teal {
+    border-color: oklch(var(--teal) / 0.3);
+  }
+  .text-cta {
+    color: oklch(var(--cta));
+  }
+  .btn-cta {
+    background: linear-gradient(
+      135deg,
+      oklch(var(--cta)),
+      oklch(var(--cta-end))
+    );
+    color: #fff;
+  }
+  .glow-teal {
+    box-shadow: 0 0 24px oklch(var(--teal) / 0.18);
+  }
+  .glass-card {
+    background: oklch(var(--card));
+    border: 1px solid oklch(var(--border));
+    box-shadow: 0 4px 32px oklch(0.1 0.025 204 / 0.6);
+  }
+}
