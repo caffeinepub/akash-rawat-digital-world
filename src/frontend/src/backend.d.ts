@@ -33,6 +33,7 @@ export interface backendInterface {
     getLeadsInTimeRange(startTimestamp: bigint, endTimestamp: bigint): Promise<Array<ContactLead>>;
     getUserProfile(user: Principal): Promise<UserProfile | null>;
     isCallerAdmin(): Promise<boolean>;
+    resetAdminSystem(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     storeLead(name: string, phone: string, message: string, timestamp: bigint): Promise<void>;
 }

@@ -11,8 +11,6 @@ import Principal "mo:core/Principal";
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
 
-// This with clause applies migration on upgrade
-
 actor {
   // mixin for role-based access control
   let accessControlState = AccessControl.initState();
@@ -60,6 +58,14 @@ actor {
     accessControlState.userRoles.add(caller, #admin);
     accessControlState.adminAssigned := true;
     return true;
+  };
+
+  // Admin-only: reset the entire admin system (clears all roles, allows fresh bootstrap).
+  public shared ({ caller }) func resetAdminSystem() : async () {
+    if (not AccessControl.isAdmin(accessControlState, caller)) {
+      Runtime.trap("Unauthorized: Only the current admin can reset the system");
+    };
+    AccessControl.resetState(accessControlState);
   };
 
   // Contact Lead Type

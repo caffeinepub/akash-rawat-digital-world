@@ -8,7 +8,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, LogIn, LogOut, ShieldAlert, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  LogIn,
+  LogOut,
+  RotateCcw,
+  ShieldAlert,
+  Users,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import type { ContactLead } from "./backend";
@@ -25,6 +32,7 @@ export default function AdminPanel() {
   const [leads, setLeads] = useState<ContactLead[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [leadsError, setLeadsError] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
 
   const isLoggedIn = !!identity;
   const isLoggingIn = loginStatus === "logging-in";
@@ -77,6 +85,24 @@ export default function AdminPanel() {
       fetchLeads();
     }
   }, [isAdmin, fetchLeads]);
+
+  const handleResetAdminSystem = async () => {
+    const confirmed = window.confirm(
+      "Are you sure? This will log you out as admin and allow anyone who logs in next to claim admin access.",
+    );
+    if (!confirmed || !actor) return;
+    setResetting(true);
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (actor as any).resetAdminSystem();
+      setIsAdmin(null);
+      clear();
+    } catch {
+      // ignore errors
+    } finally {
+      setResetting(false);
+    }
+  };
 
   const formatDate = (ts: bigint) =>
     new Date(Number(ts)).toLocaleString("en-IN", {
@@ -279,19 +305,43 @@ export default function AdminPanel() {
                   All contact form submissions from your portfolio site.
                 </p>
               </div>
-              {!leadsLoading && (
-                <div
-                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
-                  style={{
-                    background: "oklch(0.77 0.12 185 / 0.1)",
-                    border: "1px solid oklch(0.77 0.12 185 / 0.25)",
-                    color: "oklch(0.77 0.12 185)",
-                  }}
+              <div className="flex items-center gap-3">
+                {!leadsLoading && (
+                  <div
+                    className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold"
+                    style={{
+                      background: "oklch(0.77 0.12 185 / 0.1)",
+                      border: "1px solid oklch(0.77 0.12 185 / 0.25)",
+                      color: "oklch(0.77 0.12 185)",
+                    }}
+                  >
+                    <Users size={12} />
+                    {leads.length} lead{leads.length !== 1 ? "s" : ""}
+                  </div>
+                )}
+                <Button
+                  type="button"
+                  data-ocid="admin.reset.button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleResetAdminSystem}
+                  disabled={resetting}
+                  className="gap-2 bg-transparent text-rose-400 border-rose-500/40 hover:bg-rose-500/10 hover:text-rose-300 hover:border-rose-500/60 transition-colors"
                 >
-                  <Users size={12} />
-                  {leads.length} lead{leads.length !== 1 ? "s" : ""}
-                </div>
-              )}
+                  {resetting ? (
+                    <div
+                      className="w-3.5 h-3.5 rounded-full border-2 animate-spin"
+                      style={{
+                        borderColor: "oklch(0.65 0.2 10 / 0.3)",
+                        borderTopColor: "oklch(0.65 0.2 10)",
+                      }}
+                    />
+                  ) : (
+                    <RotateCcw size={13} />
+                  )}
+                  Reset Admin
+                </Button>
+              </div>
             </div>
 
             {/* Error state */}

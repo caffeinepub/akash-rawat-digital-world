@@ -1,28 +1,24 @@
 # Akash Rawat - Digital World
 
 ## Current State
-Full portfolio site with contact form that saves leads (name, phone, message, timestamp) to ICP backend. Backend has `getAllLeads()` (admin-only), `isCallerAdmin()`, and full authorization/role-based access control via the `authorization` component. No admin panel UI exists yet.
+Backend has `bootstrapAdmin()` which auto-assigns the first logged-in user as admin and locks further assignments via `adminAssigned` flag. No token UI exists in the current AdminPanel. The `access-control.mo` still has an old `initialize()` function that accepted tokens (unused by main.mo). `backend.d.ts` has no reset function.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Admin panel page accessible at `/admin` route (or toggled via a hidden link)
-- Login flow using ICP Internet Identity (via `useAuthClient` from authorization hooks)
-- Once logged in as admin: display a table of all submitted leads (name, phone, message, timestamp)
-- Logout button
-- Empty state when no leads exist
-- Loading state while fetching leads
+- `resetAdminSystem()` backend function: callable only by current admin; clears all user roles and resets `adminAssigned` to false, allowing a fresh bootstrap.
+- Reset button in AdminPanel for the logged-in admin to trigger a reset.
+- Update `backend.d.ts` to include `resetAdminSystem(): Promise<void>`.
 
 ### Modify
-- App.tsx: add routing so `/admin` renders the AdminPanel component while `/` renders the existing portfolio
+- `main.mo`: add `resetAdminSystem()` function.
+- `AdminPanel.tsx`: add a "Reset Admin System" button in the admin dashboard with confirmation.
 
 ### Remove
-- Nothing
+- Unused `initialize()` token function from `access-control.mo` (dead code cleanup).
 
 ## Implementation Plan
-1. Create `src/frontend/src/AdminPanel.tsx` — admin panel component with login, lead table, logout
-2. Wire `useAuthClient` from authorization hooks for login/logout
-3. Call `actor.getAllLeads()` after confirming caller is admin via `actor.isCallerAdmin()`
-4. Display leads in a clean table sorted newest first (reverse by timestamp)
-5. Update `App.tsx` to use `window.location.pathname` to conditionally render AdminPanel vs main portfolio (no router library needed)
-6. Add a small discreet "Admin" link in the footer
+1. Add `resetAdminSystem()` to `main.mo` that checks admin, clears userRoles, resets adminAssigned.
+2. Remove dead `initialize()` from `access-control.mo`; add `resetState()` helper.
+3. Update `backend.d.ts` to add `resetAdminSystem`.
+4. Add reset button with confirmation dialog in `AdminPanel.tsx`.
