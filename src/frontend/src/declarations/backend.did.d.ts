@@ -10,14 +10,30 @@ import type { ActorMethod } from '@icp-sdk/core/agent';
 import type { IDL } from '@icp-sdk/core/candid';
 import type { Principal } from '@icp-sdk/core/principal';
 
-export interface ContactSubmission {
+export interface ContactLead {
   'name' : string,
-  'email' : string,
   'message' : string,
+  'timestamp' : bigint,
+  'phone' : string,
 }
+export interface UserProfile { 'name' : string }
+export type UserRole = { 'admin' : null } |
+  { 'user' : null } |
+  { 'guest' : null };
 export interface _SERVICE {
-  'getAllContactSubmissions' : ActorMethod<[], Array<ContactSubmission>>,
-  'submitContactForm' : ActorMethod<[string, string, string], undefined>,
+  '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
+  'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
+  'deleteLead' : ActorMethod<[bigint], undefined>,
+  'getAllLeads' : ActorMethod<[], Array<ContactLead>>,
+  'getCallerUserProfile' : ActorMethod<[], [] | [UserProfile]>,
+  'getCallerUserRole' : ActorMethod<[], UserRole>,
+  'getLeadById' : ActorMethod<[bigint], [] | [ContactLead]>,
+  'getLeadsByPhone' : ActorMethod<[string], Array<ContactLead>>,
+  'getLeadsInTimeRange' : ActorMethod<[bigint, bigint], Array<ContactLead>>,
+  'getUserProfile' : ActorMethod<[Principal], [] | [UserProfile]>,
+  'isCallerAdmin' : ActorMethod<[], boolean>,
+  'saveCallerUserProfile' : ActorMethod<[UserProfile], undefined>,
+  'storeLead' : ActorMethod<[string, string, string, bigint], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

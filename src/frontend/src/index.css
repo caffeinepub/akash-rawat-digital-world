@@ -96,4 +96,11 @@
     border: 1px solid oklch(var(--border));
     box-shadow: 0 4px 32px oklch(0.1 0.025 204 / 0.6);
   }
+  .footer-admin-link {
+    color: oklch(0.45 0.018 200);
+    transition: color 0.15s;
+  }
+  .footer-admin-link:hover {
+    color: oklch(0.6 0.025 200);
+  }
 }

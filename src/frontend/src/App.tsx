@@ -1,9 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Toaster } from "@/components/ui/sonner";
 import { Textarea } from "@/components/ui/textarea";
-import { useMutation } from "@tanstack/react-query";
 import {
   ArrowRight,
   BarChart2,
@@ -13,7 +11,6 @@ import {
   Cpu,
   Film,
   Globe,
-  Loader2,
   Mail,
   MapPin,
   Megaphone,
@@ -32,7 +29,7 @@ import {
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
-import { toast } from "sonner";
+import AdminPanel from "./AdminPanel";
 import { useActor } from "./hooks/useActor";
 
 const WHATSAPP_URL = "https://wa.me/917067326325";
@@ -267,41 +264,44 @@ function HeroBg() {
   );
 }
 
-export default function App() {
+function Portfolio() {
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", message: "" });
+  const [form, setForm] = useState({ name: "", phone: "", message: "" });
+  const [submitting, setSubmitting] = useState(false);
+  const [submitted, setSubmitted] = useState<string | null>(null);
   const { actor } = useActor();
   const activeSection = useScrollSpy(["home", "about", "services", "contact"]);
 
-  const {
-    mutate: submitContact,
-    isPending,
-    isSuccess,
-  } = useMutation({
-    mutationFn: async (data: {
-      name: string;
-      email: string;
-      message: string;
-    }) => {
-      if (!actor) throw new Error("Not connected");
-      await actor.submitContactForm(data.name, data.email, data.message);
-    },
-    onSuccess: () => {
-      toast.success("Message sent! I'll get back to you soon.");
-      setForm({ name: "", email: "", message: "" });
-    },
-    onError: () => {
-      toast.error("Failed to send. Please try again.");
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name || !form.email || !form.message) {
-      toast.error("Please fill in all fields.");
-      return;
+    setSubmitting(true);
+    try {
+      if (actor)
+        await actor.storeLead(
+          form.name,
+          form.phone,
+          form.message,
+          BigInt(Date.now()),
+        );
+    } catch (err) {
+      console.error("Failed to save lead:", err);
+    } finally {
+      setSubmitting(false);
     }
-    submitContact(form);
+    setSubmitted(
+      new Date().toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }),
+    );
+    const url =
+      `${WHATSAPP_URL}?text=` +
+      `Name: ${encodeURIComponent(form.name)}%0a` +
+      `Phone: ${encodeURIComponent(form.phone)}%0a` +
+      `Message: ${encodeURIComponent(form.message)}`;
+    window.open(url, "_blank");
+    setForm({ name: "", phone: "", message: "" });
+    setTimeout(() => setSubmitted(null), 5000);
   };
 
   const scrollTo = (href: string) => {
@@ -322,8 +322,6 @@ export default function App() {
           "linear-gradient(180deg, oklch(0.118 0.022 204), oklch(0.105 0.02 204) 50%, oklch(0.118 0.022 204))",
       }}
     >
-      <Toaster />
-
       {/* NAVBAR */}
       <header
         className="fixed top-0 left-0 right-0 z-50"
@@ -807,7 +805,6 @@ export default function App() {
                   </div>
                   akashrawat@digitalworld.in
                 </div>
-                {/* WhatsApp CTA in contact sidebar */}
                 <a
                   href={WHATSAPP_URL}
                   target="_blank"
@@ -860,19 +857,19 @@ export default function App() {
                     </div>
                     <div className="space-y-2">
                       <Label
-                        htmlFor="email"
+                        htmlFor="phone"
                         className="text-sm text-muted-foreground"
                       >
-                        Email Address
+                        Phone Number
                       </Label>
                       <Input
-                        id="email"
-                        type="email"
-                        data-ocid="contact.email.input"
-                        placeholder="you@example.com"
-                        value={form.email}
+                        id="phone"
+                        type="tel"
+                        data-ocid="contact.phone.input"
+                        placeholder="Your Phone Number"
+                        value={form.phone}
                         onChange={(e) =>
-                          setForm((p) => ({ ...p, email: e.target.value }))
+                          setForm((p) => ({ ...p, phone: e.target.value }))
                         }
                         className="bg-secondary/50 border-border placeholder:text-muted-foreground/50"
                         required
@@ -899,38 +896,37 @@ export default function App() {
                     />
                   </div>
 
-                  {isSuccess && (
-                    <div
-                      data-ocid="contact.success_state"
-                      className="flex items-center gap-2 text-sm rounded-lg px-4 py-3"
-                      style={{
-                        background: "oklch(0.65 0.15 145 / 0.12)",
-                        border: "1px solid oklch(0.65 0.15 145 / 0.3)",
-                        color: "oklch(0.75 0.13 145)",
-                      }}
-                    >
-                      <CheckCircle2 size={16} />
-                      Message sent successfully! I'll be in touch soon.
-                    </div>
-                  )}
-
                   <Button
                     type="submit"
                     data-ocid="contact.submit_button"
-                    disabled={isPending}
+                    disabled={submitting}
                     className="w-full btn-cta border-0 font-semibold text-base py-5 hover:opacity-90 transition-opacity"
                   >
-                    {isPending ? (
-                      <>
-                        <Loader2 size={18} className="mr-2 animate-spin" />{" "}
-                        Sending...
-                      </>
+                    {submitting ? (
+                      "Sending..."
                     ) : (
                       <>
-                        Send Message <ArrowRight size={16} className="ml-2" />
+                        Send via WhatsApp{" "}
+                        <MessageCircle size={16} className="ml-2" />
                       </>
                     )}
                   </Button>
+
+                  {submitted && (
+                    <div
+                      data-ocid="contact.success_state"
+                      className="text-center text-sm font-medium space-y-1"
+                      style={{ color: "oklch(0.65 0.15 145)" }}
+                    >
+                      <p>Message sent! ✅</p>
+                      <p
+                        className="text-xs"
+                        style={{ color: "oklch(0.55 0.08 145)" }}
+                      >
+                        Submitted on {submitted}
+                      </p>
+                    </div>
+                  )}
                 </form>
               </div>
             </motion.div>
@@ -997,6 +993,13 @@ export default function App() {
                   {link.label}
                 </button>
               ))}
+              <a
+                href="/admin"
+                data-ocid="footer.admin.link"
+                className="text-xs footer-admin-link"
+              >
+                Admin
+              </a>
             </nav>
           </div>
         </div>
@@ -1025,4 +1028,9 @@ export default function App() {
       </motion.a>
     </div>
   );
+}
+
+export default function App() {
+  const isAdmin = window.location.pathname === "/admin";
+  return isAdmin ? <AdminPanel /> : <Portfolio />;
 }

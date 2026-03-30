@@ -7,12 +7,31 @@ export interface None {
     __kind__: "None";
 }
 export type Option<T> = Some<T> | None;
-export interface ContactSubmission {
+export interface ContactLead {
     name: string;
-    email: string;
     message: string;
+    timestamp: bigint;
+    phone: string;
+}
+export interface UserProfile {
+    name: string;
+}
+export enum UserRole {
+    admin = "admin",
+    user = "user",
+    guest = "guest"
 }
 export interface backendInterface {
-    getAllContactSubmissions(): Promise<Array<ContactSubmission>>;
-    submitContactForm(name: string, email: string, message: string): Promise<void>;
+    assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    deleteLead(id: bigint): Promise<void>;
+    getAllLeads(): Promise<Array<ContactLead>>;
+    getCallerUserProfile(): Promise<UserProfile | null>;
+    getCallerUserRole(): Promise<UserRole>;
+    getLeadById(id: bigint): Promise<ContactLead | null>;
+    getLeadsByPhone(phone: string): Promise<Array<ContactLead>>;
+    getLeadsInTimeRange(startTimestamp: bigint, endTimestamp: bigint): Promise<Array<ContactLead>>;
+    getUserProfile(user: Principal): Promise<UserProfile | null>;
+    isCallerAdmin(): Promise<boolean>;
+    saveCallerUserProfile(profile: UserProfile): Promise<void>;
+    storeLead(name: string, phone: string, message: string, timestamp: bigint): Promise<void>;
 }

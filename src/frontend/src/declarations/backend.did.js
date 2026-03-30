@@ -8,29 +8,81 @@
 
 import { IDL } from '@icp-sdk/core/candid';
 
-export const ContactSubmission = IDL.Record({
-  'name' : IDL.Text,
-  'email' : IDL.Text,
-  'message' : IDL.Text,
+export const UserRole = IDL.Variant({
+  'admin' : IDL.Null,
+  'user' : IDL.Null,
+  'guest' : IDL.Null,
 });
+export const ContactLead = IDL.Record({
+  'name' : IDL.Text,
+  'message' : IDL.Text,
+  'timestamp' : IDL.Int,
+  'phone' : IDL.Text,
+});
+export const UserProfile = IDL.Record({ 'name' : IDL.Text });
 
 export const idlService = IDL.Service({
-  'getAllContactSubmissions' : IDL.Func([], [IDL.Vec(ContactSubmission)], []),
-  'submitContactForm' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
+  '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+  'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+  'deleteLead' : IDL.Func([IDL.Nat], [], []),
+  'getAllLeads' : IDL.Func([], [IDL.Vec(ContactLead)], ['query']),
+  'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+  'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+  'getLeadById' : IDL.Func([IDL.Nat], [IDL.Opt(ContactLead)], ['query']),
+  'getLeadsByPhone' : IDL.Func([IDL.Text], [IDL.Vec(ContactLead)], ['query']),
+  'getLeadsInTimeRange' : IDL.Func(
+      [IDL.Int, IDL.Int],
+      [IDL.Vec(ContactLead)],
+      ['query'],
+    ),
+  'getUserProfile' : IDL.Func(
+      [IDL.Principal],
+      [IDL.Opt(UserProfile)],
+      ['query'],
+    ),
+  'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+  'storeLead' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, IDL.Int], [], []),
 });
 
 export const idlInitArgs = [];
 
 export const idlFactory = ({ IDL }) => {
-  const ContactSubmission = IDL.Record({
-    'name' : IDL.Text,
-    'email' : IDL.Text,
-    'message' : IDL.Text,
+  const UserRole = IDL.Variant({
+    'admin' : IDL.Null,
+    'user' : IDL.Null,
+    'guest' : IDL.Null,
   });
+  const ContactLead = IDL.Record({
+    'name' : IDL.Text,
+    'message' : IDL.Text,
+    'timestamp' : IDL.Int,
+    'phone' : IDL.Text,
+  });
+  const UserProfile = IDL.Record({ 'name' : IDL.Text });
   
   return IDL.Service({
-    'getAllContactSubmissions' : IDL.Func([], [IDL.Vec(ContactSubmission)], []),
-    'submitContactForm' : IDL.Func([IDL.Text, IDL.Text, IDL.Text], [], []),
+    '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
+    'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
+    'deleteLead' : IDL.Func([IDL.Nat], [], []),
+    'getAllLeads' : IDL.Func([], [IDL.Vec(ContactLead)], ['query']),
+    'getCallerUserProfile' : IDL.Func([], [IDL.Opt(UserProfile)], ['query']),
+    'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
+    'getLeadById' : IDL.Func([IDL.Nat], [IDL.Opt(ContactLead)], ['query']),
+    'getLeadsByPhone' : IDL.Func([IDL.Text], [IDL.Vec(ContactLead)], ['query']),
+    'getLeadsInTimeRange' : IDL.Func(
+        [IDL.Int, IDL.Int],
+        [IDL.Vec(ContactLead)],
+        ['query'],
+      ),
+    'getUserProfile' : IDL.Func(
+        [IDL.Principal],
+        [IDL.Opt(UserProfile)],
+        ['query'],
+      ),
+    'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'saveCallerUserProfile' : IDL.Func([UserProfile], [], []),
+    'storeLead' : IDL.Func([IDL.Text, IDL.Text, IDL.Text, IDL.Int], [], []),
   });
 };
 
