@@ -46,6 +46,22 @@ actor {
     userProfiles.add(caller, profile);
   };
 
+  // Bootstrap: first caller becomes admin automatically (no token needed).
+  // Once an admin is assigned, this function becomes a no-op.
+  public shared ({ caller }) func bootstrapAdmin() : async Bool {
+    if (caller.isAnonymous()) {
+      return false;
+    };
+    if (accessControlState.adminAssigned) {
+      // Already has an admin — check if caller is the admin
+      return AccessControl.isAdmin(accessControlState, caller);
+    };
+    // No admin yet — make caller the admin
+    accessControlState.userRoles.add(caller, #admin);
+    accessControlState.adminAssigned := true;
+    return true;
+  };
+
   // Contact Lead Type
   type ContactLead = {
     name : Text;

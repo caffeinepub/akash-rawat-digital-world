@@ -23,6 +23,7 @@ export enum UserRole {
 }
 export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
+    bootstrapAdmin(): Promise<boolean>;
     deleteLead(id: bigint): Promise<void>;
     getAllLeads(): Promise<Array<ContactLead>>;
     getCallerUserProfile(): Promise<UserProfile | null>;
