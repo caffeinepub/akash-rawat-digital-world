@@ -18,7 +18,13 @@ import {
 } from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
-import type { ContactLead } from "./backend";
+import type { backendInterface as BackendBase, ContactLead } from "./backend";
+import { ExternalBlob } from "./backend";
+
+type AdminActor = BackendBase & {
+  uploadSiteImage(key: string, imageData: ExternalBlob): Promise<void>;
+  getSiteImage(key: string): Promise<ExternalBlob | null>;
+};
 import { useActor } from "./hooks/useActor";
 import { useInternetIdentity } from "./hooks/useInternetIdentity";
 
@@ -33,6 +39,21 @@ export default function AdminPanel() {
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [leadsError, setLeadsError] = useState<string | null>(null);
   const [resetting, setResetting] = useState(false);
+  const [imageUploading, setImageUploading] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [imagePreview, setImagePreview] = useState<
+    Record<string, string | null>
+  >({});
+  const [imageSuccess, setImageSuccess] = useState<
+    Record<string, string | null>
+  >({});
+  const [imageError, setImageError] = useState<Record<string, string | null>>(
+    {},
+  );
+  const [selectedFile, setSelectedFile] = useState<Record<string, File | null>>(
+    {},
+  );
 
   const isLoggedIn = !!identity;
   const isLoggingIn = loginStatus === "logging-in";
@@ -85,6 +106,59 @@ export default function AdminPanel() {
       fetchLeads();
     }
   }, [isAdmin, fetchLeads]);
+
+  useEffect(() => {
+    if (!isAdmin || !actor) return;
+    const loadPreviews = async () => {
+      try {
+        const adminActor = actor as unknown as AdminActor;
+        const [heroBlob, logoBlob] = await Promise.all([
+          adminActor.getSiteImage("hero"),
+          adminActor.getSiteImage("logo"),
+        ]);
+        setImagePreview((prev) => ({
+          ...prev,
+          hero: heroBlob ? heroBlob.getDirectURL() : null,
+          logo: logoBlob ? logoBlob.getDirectURL() : null,
+        }));
+      } catch {
+        // ignore
+      }
+    };
+    loadPreviews();
+  }, [isAdmin, actor]);
+
+  const handleImageUpload = async (key: string) => {
+    const file = selectedFile[key];
+    if (!file || !actor) return;
+    setImageUploading((prev) => ({ ...prev, [key]: true }));
+    setImageSuccess((prev) => ({ ...prev, [key]: null }));
+    setImageError((prev) => ({ ...prev, [key]: null }));
+    try {
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      const blob = ExternalBlob.fromBytes(bytes);
+      await (actor as unknown as AdminActor).uploadSiteImage(key, blob);
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview((prev) => ({ ...prev, [key]: previewUrl }));
+      setImageSuccess((prev) => ({
+        ...prev,
+        [key]: "Image uploaded successfully!",
+      }));
+      setSelectedFile((prev) => ({ ...prev, [key]: null }));
+      setTimeout(
+        () => setImageSuccess((prev) => ({ ...prev, [key]: null })),
+        3000,
+      );
+    } catch {
+      setImageError((prev) => ({
+        ...prev,
+        [key]: "Upload failed. Please try again.",
+      }));
+    } finally {
+      setImageUploading((prev) => ({ ...prev, [key]: false }));
+    }
+  };
 
   const handleResetAdminSystem = async () => {
     const confirmed = window.confirm(
@@ -296,6 +370,157 @@ export default function AdminPanel() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
           >
+            {/* Website Images Section */}
+            <div className="mb-10">
+              <div className="mb-5">
+                <h2 className="text-xl font-bold text-foreground">
+                  Website Images
+                </h2>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Upload or change images that appear on your website.
+                </p>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+                {(["logo", "hero"] as const).map((key) => (
+                  <div
+                    key={key}
+                    className="glass-card rounded-2xl p-5 flex flex-col gap-4"
+                    style={{ border: "1px solid oklch(0.22 0.028 200 / 0.5)" }}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold"
+                        style={{
+                          background: "oklch(0.77 0.12 185 / 0.15)",
+                          border: "1px solid oklch(0.77 0.12 185 / 0.3)",
+                          color: "oklch(0.77 0.12 185)",
+                        }}
+                      >
+                        {key === "logo" ? "L" : "H"}
+                      </div>
+                      <span className="font-semibold text-foreground text-sm capitalize">
+                        {key === "logo" ? "Logo" : "Hero Image"}
+                      </span>
+                    </div>
+
+                    {/* Preview */}
+                    <div
+                      className="rounded-xl overflow-hidden flex items-center justify-center"
+                      style={{
+                        background: "oklch(0.14 0.022 204)",
+                        border: "1px solid oklch(0.22 0.028 200 / 0.4)",
+                        minHeight: key === "hero" ? "120px" : "80px",
+                      }}
+                    >
+                      {imagePreview[key] ? (
+                        <img
+                          src={imagePreview[key]!}
+                          alt={key}
+                          className={
+                            key === "hero"
+                              ? "w-full h-32 object-cover"
+                              : "h-16 max-w-full object-contain p-2"
+                          }
+                        />
+                      ) : (
+                        <p className="text-xs text-muted-foreground py-6">
+                          No image uploaded yet
+                        </p>
+                      )}
+                    </div>
+
+                    {/* File input */}
+                    <div className="flex flex-col gap-2">
+                      <label
+                        className="relative cursor-pointer flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors"
+                        style={{
+                          background: "oklch(0.18 0.025 204)",
+                          border: "1px solid oklch(0.25 0.028 200 / 0.5)",
+                          color: "oklch(0.77 0.12 185)",
+                        }}
+                        data-ocid={`admin.${key}_image.upload_button`}
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          aria-hidden="true"
+                        >
+                          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                          <polyline points="17 8 12 3 7 8" />
+                          <line x1="12" y1="3" x2="12" y2="15" />
+                        </svg>
+                        {selectedFile[key]
+                          ? selectedFile[key]!.name
+                          : "Choose file..."}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                          onChange={(e) => {
+                            const f = e.target.files?.[0] ?? null;
+                            setSelectedFile((prev) => ({ ...prev, [key]: f }));
+                          }}
+                        />
+                      </label>
+                      <Button
+                        type="button"
+                        data-ocid={`admin.${key}_image.submit_button`}
+                        size="sm"
+                        disabled={!selectedFile[key] || imageUploading[key]}
+                        onClick={() => handleImageUpload(key)}
+                        className="btn-cta border-0 font-semibold hover:opacity-90 w-full"
+                      >
+                        {imageUploading[key] ? (
+                          <span className="flex items-center gap-2">
+                            <div
+                              className="w-3.5 h-3.5 rounded-full border-2 animate-spin"
+                              style={{
+                                borderColor: "rgba(255,255,255,0.3)",
+                                borderTopColor: "#fff",
+                              }}
+                            />
+                            Uploading...
+                          </span>
+                        ) : (
+                          "Upload"
+                        )}
+                      </Button>
+                    </div>
+
+                    {/* Feedback */}
+                    {imageSuccess[key] && (
+                      <p
+                        data-ocid={`admin.${key}_image.success_state`}
+                        className="text-xs font-medium"
+                        style={{ color: "oklch(0.65 0.15 145)" }}
+                      >
+                        ✓ {imageSuccess[key]}
+                      </p>
+                    )}
+                    {imageError[key] && (
+                      <p
+                        data-ocid={`admin.${key}_image.error_state`}
+                        className="text-xs font-medium"
+                        style={{ color: "oklch(0.65 0.2 10)" }}
+                      >
+                        ✗ {imageError[key]}
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Divider */}
+            <div
+              className="mb-8"
+              style={{ borderTop: "1px solid oklch(0.22 0.028 200 / 0.4)" }}
+            />
+
             <div className="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h1 className="text-2xl md:text-3xl font-bold text-foreground">

@@ -36,4 +36,6 @@ export interface backendInterface {
     resetAdminSystem(): Promise<void>;
     saveCallerUserProfile(profile: UserProfile): Promise<void>;
     storeLead(name: string, phone: string, message: string, timestamp: bigint): Promise<void>;
+    uploadSiteImage(key: string, imageData: ExternalBlob): Promise<void>;
+    getSiteImage(key: string): Promise<ExternalBlob | null>;
 }

@@ -21,7 +21,7 @@ module {
     };
   };
 
-  // Used by MixinAuthorization for token-based initialization (kept for compatibility).
+  // First principal that calls this function becomes admin, all other principals become users.
   public func initialize(state : AccessControlState, caller : Principal, adminToken : Text, userProvidedToken : Text) {
     if (caller.isAnonymous()) { return };
     switch (state.userRoles.get(caller)) {
@@ -35,12 +35,6 @@ module {
         };
       };
     };
-  };
-
-  // Reset all roles and allow fresh bootstrap.
-  public func resetState(state : AccessControlState) {
-    state.userRoles.clear();
-    state.adminAssigned := false;
   };
 
   public func getUserRole(state : AccessControlState, caller : Principal) : UserRole {

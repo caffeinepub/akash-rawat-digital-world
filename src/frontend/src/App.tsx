@@ -30,6 +30,11 @@ import {
 import { AnimatePresence, motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import AdminPanel from "./AdminPanel";
+import type { ExternalBlob } from "./backend";
+
+type ActorWithImages = {
+  getSiteImage(key: string): Promise<ExternalBlob | null>;
+};
 import { useActor } from "./hooks/useActor";
 
 const WHATSAPP_URL = "https://wa.me/917067326325";
@@ -37,91 +42,91 @@ const WHATSAPP_URL = "https://wa.me/917067326325";
 const SERVICES = [
   {
     icon: Search,
-    title: "SEO Optimization",
+    title: "एसईओ ऑप्टिमाइजेशन",
     desc: "Rank higher, drive organic traffic with data-driven search strategies.",
     color: "text-green-400",
   },
   {
     icon: Code2,
-    title: "Software Development",
+    title: "सॉफ्टवेयर डेवलपमेंट",
     desc: "Custom software solutions built with modern tech stacks.",
     color: "text-blue-400",
   },
   {
     icon: Megaphone,
-    title: "Digital Marketing",
+    title: "डिजिटल मार्केटिंग",
     desc: "Performance campaigns that convert visitors into customers.",
     color: "text-orange-400",
   },
   {
     icon: Palette,
-    title: "Graphics Designing",
+    title: "ग्राफिक्स डिजाइनिंग",
     desc: "Visually stunning designs that communicate your brand story.",
     color: "text-pink-400",
   },
   {
     icon: Film,
-    title: "Motion Graphics",
+    title: "मोशन ग्राफिक्स",
     desc: "Engaging animations that bring your ideas to life.",
     color: "text-purple-400",
   },
   {
     icon: PenTool,
-    title: "Logo Designing",
+    title: "लोगो डिजाइनिंग",
     desc: "Memorable logos that define your brand identity.",
     color: "text-yellow-400",
   },
   {
     icon: Video,
-    title: "Video Editing",
+    title: "वीडियो एडिटिंग",
     desc: "Professional edits that captivate and retain audiences.",
     color: "text-red-400",
   },
   {
     icon: Share2,
-    title: "Social Media Marketing",
+    title: "सोशल मीडिया मार्केटिंग",
     desc: "Build community and drive engagement across all platforms.",
     color: "text-cyan-400",
   },
   {
     icon: Smartphone,
-    title: "App Development",
+    title: "ऐप डेवलपमेंट",
     desc: "iOS & Android apps crafted for seamless user experiences.",
     color: "text-indigo-400",
   },
   {
     icon: BarChart2,
-    title: "Data Analysis",
+    title: "डेटा विश्लेषण",
     desc: "Turn raw data into actionable business intelligence.",
     color: "text-emerald-400",
   },
   {
     icon: Building2,
-    title: "Company Registration",
+    title: "कंपनी रजिस्ट्रेशन",
     desc: "Hassle-free business registration and legal compliance.",
     color: "text-amber-400",
   },
   {
     icon: Globe,
-    title: "Website Development",
+    title: "वेबसाइट डेवलपमेंट",
     desc: "Fast, responsive websites that convert visitors into clients.",
     color: "text-teal-400",
   },
   {
     icon: Cpu,
-    title: "IT Solutions",
+    title: "आईटी समाधान",
     desc: "End-to-end IT infrastructure and support services.",
     color: "text-sky-400",
   },
   {
     icon: Mail,
-    title: "Email Marketing",
+    title: "ईमेल मार्केटिंग",
     desc: "Targeted campaigns with high open rates and conversions.",
     color: "text-rose-400",
   },
   {
     icon: Youtube,
-    title: "YouTube Marketing",
+    title: "यूट्यूब मार्केटिंग",
     desc: "Grow your channel and monetize your video content.",
     color: "text-red-500",
   },
@@ -270,7 +275,27 @@ function Portfolio() {
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState<string | null>(null);
   const { actor } = useActor();
+  const [heroImageUrl, setHeroImageUrl] = useState<string | null>(null);
+  const [logoImageUrl, setLogoImageUrl] = useState<string | null>(null);
   const activeSection = useScrollSpy(["home", "about", "services", "contact"]);
+
+  useEffect(() => {
+    if (!actor) return;
+    const loadImages = async () => {
+      try {
+        const imgActor = actor as unknown as ActorWithImages;
+        const [heroBlob, logoBlob] = await Promise.all([
+          imgActor.getSiteImage("hero"),
+          imgActor.getSiteImage("logo"),
+        ]);
+        if (heroBlob) setHeroImageUrl(heroBlob.getDirectURL());
+        if (logoBlob) setLogoImageUrl(logoBlob.getDirectURL());
+      } catch {
+        // ignore
+      }
+    };
+    loadImages();
+  }, [actor]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -333,26 +358,36 @@ function Portfolio() {
       >
         <div className="container mx-auto flex items-center justify-between h-16 px-4 md:px-8">
           <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-black"
-              style={{
-                background:
-                  "linear-gradient(135deg, oklch(0.77 0.12 185), oklch(0.65 0.10 185))",
-              }}
-            >
-              AR
-            </div>
-            <div>
-              <div className="font-bold text-foreground text-sm leading-tight tracking-wide">
-                AKASH RAWAT
-              </div>
-              <div
-                className="text-xs leading-tight"
-                style={{ color: "oklch(0.77 0.12 185)" }}
-              >
-                Digital World
-              </div>
-            </div>
+            {logoImageUrl ? (
+              <img
+                src={logoImageUrl}
+                alt="Akash Rawat Logo"
+                className="h-10 max-w-[120px] object-contain rounded-lg"
+              />
+            ) : (
+              <>
+                <div
+                  className="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold text-black"
+                  style={{
+                    background:
+                      "linear-gradient(135deg, oklch(0.77 0.12 185), oklch(0.65 0.10 185))",
+                  }}
+                >
+                  AR
+                </div>
+                <div>
+                  <div className="font-bold text-foreground text-sm leading-tight tracking-wide">
+                    AKASH RAWAT
+                  </div>
+                  <div
+                    className="text-xs leading-tight"
+                    style={{ color: "oklch(0.77 0.12 185)" }}
+                  >
+                    Digital World
+                  </div>
+                </div>
+              </>
+            )}
           </div>
 
           <nav className="hidden md:flex items-center gap-1">
@@ -434,6 +469,18 @@ function Portfolio() {
         className="relative min-h-screen flex items-center justify-center overflow-hidden pt-16"
       >
         <HeroBg />
+        {heroImageUrl && (
+          <div
+            className="absolute inset-0 z-[1]"
+            style={{
+              backgroundImage: `url(${heroImageUrl})`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              opacity: 0.35,
+            }}
+          />
+        )}
         <div className="container mx-auto px-4 text-center relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 16 }}

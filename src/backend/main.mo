@@ -10,11 +10,15 @@ import Principal "mo:core/Principal";
 
 import MixinAuthorization "authorization/MixinAuthorization";
 import AccessControl "authorization/access-control";
+import MixinBlobStorage "blob-storage/Mixin";
 
 actor {
   // mixin for role-based access control
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
+
+  // mixin for blob storage
+  include MixinBlobStorage();
 
   // User Profile Type
   public type UserProfile = {
@@ -51,7 +55,6 @@ actor {
       return false;
     };
     if (accessControlState.adminAssigned) {
-      // Already has an admin — check if caller is the admin
       return AccessControl.isAdmin(accessControlState, caller);
     };
     // No admin yet — make caller the admin
@@ -65,7 +68,8 @@ actor {
     if (not AccessControl.isAdmin(accessControlState, caller)) {
       Runtime.trap("Unauthorized: Only the current admin can reset the system");
     };
-    AccessControl.resetState(accessControlState);
+    accessControlState.userRoles.clear();
+    accessControlState.adminAssigned := false;
   };
 
   // Contact Lead Type
@@ -154,5 +158,21 @@ actor {
     } else {
       Runtime.trap("Lead not found");
     };
+  };
+
+  // Site Images: store image blobs by key (e.g. "logo", "hero")
+  let siteImages = Map.empty<Text, Blob>();
+
+  // Admin-only: upload/replace a site image by key
+  public shared ({ caller }) func uploadSiteImage(key : Text, imageData : Blob) : async () {
+    if (not (AccessControl.isAdmin(accessControlState, caller))) {
+      Runtime.trap("Unauthorized: Only admins can upload site images");
+    };
+    siteImages.add(key, imageData);
+  };
+
+  // Public: get a site image by key
+  public query func getSiteImage(key : Text) : async ?Blob {
+    siteImages.get(key);
   };
 };
