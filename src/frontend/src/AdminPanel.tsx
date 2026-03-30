@@ -8,7 +8,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowLeft, LogIn, LogOut, ShieldAlert, Users } from "lucide-react";
+import {
+  ArrowLeft,
+  Key,
+  LogIn,
+  LogOut,
+  ShieldAlert,
+  ShieldCheck,
+  Users,
+} from "lucide-react";
 import { motion } from "motion/react";
 import { useCallback, useEffect, useState } from "react";
 import type { ContactLead } from "./backend";
@@ -25,6 +33,11 @@ export default function AdminPanel() {
   const [leads, setLeads] = useState<ContactLead[]>([]);
   const [leadsLoading, setLeadsLoading] = useState(false);
   const [leadsError, setLeadsError] = useState<string | null>(null);
+
+  const [setupToken, setSetupToken] = useState("");
+  const [setupLoading, setSetupLoading] = useState(false);
+  const [setupError, setSetupError] = useState<string | null>(null);
+  const [setupSuccess, setSetupSuccess] = useState(false);
 
   const isLoggedIn = !!identity;
   const isLoggingIn = loginStatus === "logging-in";
@@ -62,6 +75,8 @@ export default function AdminPanel() {
     } else if (!isLoggedIn) {
       setIsAdmin(null);
       setLeads([]);
+      setSetupSuccess(false);
+      setSetupError(null);
     }
   }, [isLoggedIn, actor, actorFetching, checkAdmin]);
 
@@ -70,6 +85,38 @@ export default function AdminPanel() {
       fetchLeads();
     }
   }, [isAdmin, fetchLeads]);
+
+  const handleClaimAdmin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!actor || !setupToken.trim()) return;
+    setSetupLoading(true);
+    setSetupError(null);
+    try {
+      await actor._initializeAccessControlWithSecret(setupToken.trim());
+      setSetupSuccess(true);
+      setSetupToken("");
+      setTimeout(() => checkAdmin(), 500);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (msg.includes("already") || msg.includes("registered")) {
+        setSetupError(
+          "Admin has already been claimed. Only the first user can claim admin this way.",
+        );
+      } else if (
+        msg.includes("token") ||
+        msg.includes("secret") ||
+        msg.includes("invalid")
+      ) {
+        setSetupError(
+          "Incorrect token. Please check your Caffeine admin token.",
+        );
+      } else {
+        setSetupError("Failed to claim admin. Make sure the token is correct.");
+      }
+    } finally {
+      setSetupLoading(false);
+    }
+  };
 
   const formatDate = (ts: bigint) =>
     new Date(Number(ts)).toLocaleString("en-IN", {
@@ -216,46 +263,155 @@ export default function AdminPanel() {
           </motion.div>
         )}
 
-        {/* Access denied */}
+        {/* Claim Admin */}
         {!isLoading && isLoggedIn && isAdmin === false && (
           <motion.div
-            data-ocid="admin.access_denied.panel"
+            data-ocid="admin.claim_admin.panel"
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.5 }}
             className="flex flex-col items-center justify-center min-h-[60vh] gap-6"
           >
-            <div
-              className="w-20 h-20 rounded-2xl flex items-center justify-center"
-              style={{
-                background: "oklch(0.577 0.245 27 / 0.1)",
-                border: "1px solid oklch(0.577 0.245 27 / 0.3)",
-              }}
-            >
-              <ShieldAlert
-                size={36}
-                style={{ color: "oklch(0.577 0.245 27)" }}
-              />
-            </div>
-            <div className="text-center">
-              <h2 className="text-2xl font-bold text-foreground mb-2">
-                Access Denied
-              </h2>
-              <p className="text-sm text-muted-foreground max-w-xs">
-                Your account does not have admin privileges. Please contact the
-                site administrator.
-              </p>
-            </div>
-            <Button
-              type="button"
-              data-ocid="admin.access_denied.logout.button"
-              variant="outline"
-              onClick={clear}
-              className="gap-2 bg-transparent border-border text-muted-foreground hover:text-foreground"
-            >
-              <LogOut size={16} />
-              Logout
-            </Button>
+            {setupSuccess ? (
+              <>
+                <div
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                  style={{
+                    background: "oklch(0.55 0.18 145 / 0.12)",
+                    border: "1px solid oklch(0.55 0.18 145 / 0.35)",
+                  }}
+                >
+                  <ShieldCheck
+                    size={36}
+                    style={{ color: "oklch(0.65 0.18 145)" }}
+                  />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">
+                    Admin Claimed!
+                  </h2>
+                  <p className="text-sm text-muted-foreground max-w-xs">
+                    Your Internet Identity is now the admin. Reloading...
+                  </p>
+                </div>
+              </>
+            ) : (
+              <>
+                <div
+                  className="w-20 h-20 rounded-2xl flex items-center justify-center"
+                  style={{
+                    background: "oklch(0.577 0.245 27 / 0.1)",
+                    border: "1px solid oklch(0.577 0.245 27 / 0.3)",
+                  }}
+                >
+                  <ShieldAlert
+                    size={36}
+                    style={{ color: "oklch(0.65 0.2 40)" }}
+                  />
+                </div>
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold text-foreground mb-2">
+                    Not Yet an Admin
+                  </h2>
+                  <p className="text-sm text-muted-foreground max-w-sm">
+                    Your account is not an admin yet. Enter the Caffeine Admin
+                    Token below to claim admin access for your Internet
+                    Identity.
+                  </p>
+                </div>
+
+                <form
+                  onSubmit={handleClaimAdmin}
+                  data-ocid="admin.claim_admin.panel"
+                  className="w-full max-w-sm flex flex-col gap-4"
+                >
+                  {setupError && (
+                    <div
+                      data-ocid="admin.claim_admin.error_state"
+                      className="rounded-xl px-4 py-3 text-sm"
+                      style={{
+                        background: "oklch(0.577 0.245 27 / 0.1)",
+                        border: "1px solid oklch(0.577 0.245 27 / 0.3)",
+                        color: "oklch(0.72 0.18 35)",
+                      }}
+                    >
+                      {setupError}
+                    </div>
+                  )}
+
+                  <div className="flex flex-col gap-2">
+                    <label
+                      htmlFor="setup-token"
+                      className="text-sm font-medium text-foreground"
+                    >
+                      Caffeine Admin Token
+                    </label>
+                    <div className="relative">
+                      <Key
+                        size={15}
+                        className="absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"
+                        style={{ color: "oklch(0.5 0.03 200)" }}
+                      />
+                      <input
+                        id="setup-token"
+                        data-ocid="admin.claim_admin.input"
+                        type="password"
+                        value={setupToken}
+                        onChange={(e) => setSetupToken(e.target.value)}
+                        placeholder="Paste your admin token here"
+                        className="w-full rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition-colors"
+                        style={{
+                          background: "oklch(0.14 0.022 204)",
+                          border: "1px solid oklch(0.22 0.028 200 / 0.6)",
+                          color: "oklch(0.92 0.01 200)",
+                        }}
+                        required
+                      />
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Find this token in your Caffeine project settings under
+                      &quot;Admin Token&quot;.
+                    </p>
+                  </div>
+
+                  <Button
+                    type="submit"
+                    data-ocid="admin.claim_admin.submit_button"
+                    disabled={setupLoading || !setupToken.trim()}
+                    className="btn-cta border-0 font-semibold gap-2 hover:opacity-90 w-full"
+                  >
+                    {setupLoading ? (
+                      <>
+                        <div
+                          className="w-4 h-4 rounded-full border-2 animate-spin"
+                          style={{
+                            borderColor: "rgba(255,255,255,0.3)",
+                            borderTopColor: "#fff",
+                          }}
+                        />
+                        Claiming...
+                      </>
+                    ) : (
+                      <>
+                        <ShieldCheck size={16} />
+                        Claim Admin Access
+                      </>
+                    )}
+                  </Button>
+                </form>
+
+                <Button
+                  type="button"
+                  data-ocid="admin.claim_admin.logout.button"
+                  variant="outline"
+                  onClick={clear}
+                  className="gap-2 bg-transparent border-border text-muted-foreground hover:text-foreground"
+                >
+                  <LogOut size={16} />
+                  Logout
+                </Button>
+              </>
+            )}
           </motion.div>
         )}
 
